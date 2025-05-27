@@ -19,14 +19,35 @@ from pathlib import Path
 addonHandler.initTranslation()
 _ = gettext.gettext
 
+# Construct path to the bundled 'lib' directory
+addon_dir = os.path.dirname(__file__)
+lib_path = os.path.join(addon_dir, "lib")
+
+# Add lib_path to sys.path if it's not already there and exists
+if os.path.isdir(lib_path) and lib_path not in sys.path:
+    sys.path.insert(0, lib_path)
+# For debugging purposes, print the sys.path to NVDA error log
+# import traceback
+# print(f"SubtitleDownloader: Modified sys.path: {sys.path}")
+# print(f"SubtitleDownloader: Expected lib_path: {lib_path}, Exists: {os.path.isdir(lib_path)}")
+# print(f"SubtitleDownloader: Content of lib_path: {os.listdir(lib_path) if os.path.isdir(lib_path) else 'Not a dir or does not exist'}")
+
 # Try to import yt-dlp, handling potential import errors
 try:
     import yt_dlp
 except ImportError:
-    # If yt-dlp is not found directly, try finding it within the add-on structure
-    # This assumes yt-dlp might be bundled within the add-on later
-    # For now, we rely on the pip installation in the sandbox
-    ui.message(_("yt-dlp library not found. Please ensure it is installed."))
+    addon_dir_for_error = os.path.dirname(__file__)
+    lib_path_for_error = os.path.join(addon_dir_for_error, "lib")
+    expected_yt_dlp_path = os.path.join(lib_path_for_error, "yt_dlp")
+    ui.message(
+        _("yt-dlp library not found. Please download it and place the 'yt_dlp' directory inside the add-on's 'lib' folder. Expected location for 'yt_dlp': {}")
+        .format(expected_yt_dlp_path)
+    )
+    # For debugging:
+    # print(f"SubtitleDownloader: yt-dlp import failed. Checked sys.path: {sys.path}")
+    # print(f"SubtitleDownloader: Current working directory: {os.getcwd()}")
+    # print(f"SubtitleDownloader: Listing addon_dir_for_error ({addon_dir_for_error}): {os.listdir(addon_dir_for_error) if os.path.isdir(addon_dir_for_error) else 'Not found'}")
+    # print(f"SubtitleDownloader: Listing lib_path_for_error ({lib_path_for_error}): {os.listdir(lib_path_for_error) if os.path.isdir(lib_path_for_error) else 'Not found'}")
     yt_dlp = None # Indicate that yt-dlp is not available
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
@@ -46,59 +67,72 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         try:
             focusObject = api.getFocusObject()
             appModule = focusObject.appModule
-            window_name = appModule.appName # Use a different variable name to avoid conflict
+            # Initial logging of appName and windowClassName
+            print(f"SubtitleDownloader: _get_video_url: appName='{appModule.appName if appModule else 'Unknown'}', windowClassName='{focusObject.windowClassName}'")
+            
+            window_name = appModule.appName if appModule else "" # Ensure window_name is a string
 
             # Browser detection (more robust)
             if window_name in ["firefox", "chrome", "msedge", "brave", "opera", "vivaldi"]: # Added more browsers
                 # 1. Try appModule.browser.url (most reliable for supported browsers)
+                print("SubtitleDownloader: Trying appModule.browser.url")
                 if hasattr(appModule, 'browser') and hasattr(appModule.browser, 'url'):
                     url = appModule.browser.url
                     if url and (url.startswith("http://") or url.startswith("https://")):
-                        print(f"SubtitleDownloader: URL from appModule.browser.url: {url}")
+                        print(f"SubtitleDownloader: Found URL via appModule.browser.url: {url}")
                         return url
 
                 # 2. Try focusObject.document.URL
+                print("SubtitleDownloader: Trying focusObject.document.URL")
                 if hasattr(focusObject, 'document') and hasattr(focusObject.document, 'URL'):
                     url = focusObject.document.URL
                     if url and (url.startswith("http://") or url.startswith("https://")):
-                        print(f"SubtitleDownloader: URL from focusObject.document.URL: {url}")
+                        print(f"SubtitleDownloader: Found URL via focusObject.document.URL: {url}")
                         return url
 
                 # 3. Try focusObject.simpleParent.document.URL
+                print("SubtitleDownloader: Trying focusObject.simpleParent.document.URL")
                 if hasattr(focusObject, 'simpleParent') and \
                    hasattr(focusObject.simpleParent, 'document') and \
                    hasattr(focusObject.simpleParent.document, 'URL'):
                     url = focusObject.simpleParent.document.URL
                     if url and (url.startswith("http://") or url.startswith("https://")):
-                        print(f"SubtitleDownloader: URL from focusObject.simpleParent.document.URL: {url}")
+                        print(f"SubtitleDownloader: Found URL via focusObject.simpleParent.document.URL: {url}")
                         return url
                 
                 # 4. Fallback: Check if focusObject itself has 'value' (e.g., URL bar)
+                print("SubtitleDownloader: Trying focusObject.value")
                 if hasattr(focusObject, 'value') and focusObject.role == api.controlTypes.ROLE_EDITABLETEXT:
                     url = focusObject.value
                     if url and (url.startswith("http://") or url.startswith("https://")):
-                        print(f"SubtitleDownloader: URL from focusObject.value: {url}")
+                        print(f"SubtitleDownloader: Found URL via focusObject.value: {url}")
                         return url
                 
                 # 5. Fallback: Iterate upwards to find a document object with URL
+                print("SubtitleDownloader: Trying upward search for document with URL")
                 doc_obj = focusObject.simpleParent
                 # Limit upward search to prevent infinite loops in weird object hierarchies
-                for _ in range(5): # Check up to 5 levels up
+                for i in range(5): # Check up to 5 levels up
+                    print(f"SubtitleDownloader: Upward search iteration {i+1}: current_obj role: {doc_obj.role if doc_obj else 'None'}, has URL: {hasattr(doc_obj, 'URL') if doc_obj else 'N/A'}")
                     if not doc_obj:
                         break
                     if doc_obj.role == api.controlTypes.ROLE_DOCUMENT and hasattr(doc_obj, 'URL'):
                         url = doc_obj.URL
                         if url and (url.startswith("http://") or url.startswith("https://")):
-                            print(f"SubtitleDownloader: URL from upward search (doc_obj.URL): {url}")
+                            print(f"SubtitleDownloader: Found URL via upward search (doc_obj.URL): {url}")
                             return url
                     doc_obj = doc_obj.simpleParent
             
             # Add logic for other applications/platforms if needed
             # For example, for media players, the URL might be in a different property
+            print("SubtitleDownloader: URL not found through browser-specific methods or standard fallbacks.")
 
         except Exception as e:
+            obj_info = ""
+            if focusObject:
+                obj_info = f"role={focusObject.role}, name='{focusObject.name}'"
             # More specific error message for debugging
-            print(f"SubtitleDownloader: Error getting URL from {focusObject.appModule.appName if hasattr(focusObject, 'appModule') and focusObject.appModule else 'unknown app'}: {e}")
+            print(f"SubtitleDownloader: Error getting URL from {appModule.appName if appModule else 'unknown app'} ({obj_info}): {e}")
             # ui.message(_("Could not determine video URL.")) # User message is handled by the caller script
         return None
 
