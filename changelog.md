@@ -9,3 +9,4 @@
 *   Solicita seleção de idioma quando múltiplas legendas estão disponíveis.
 *   Estrutura preparada para internacionalização e build via scons.
 
+mais modificações
