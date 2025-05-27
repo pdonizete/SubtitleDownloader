@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentação do Complemento Subtitle Downloader</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+        h1, h2, h3 { color: #333; }
+        code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+        .note { background-color: #fff3cd; border-left: 5px solid #ffeeba; padding: 10px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+<h1>Complemento Subtitle Downloader para NVDA</h1>
+
+<h2>Visão Geral</h2>
+<p>O Subtitle Downloader é um complemento para o leitor de telas NVDA que permite baixar legendas de vídeos de diversas plataformas online diretamente para o seu computador.</p>
+
+<h2>Funcionalidades</h2>
+<ul>
+    <li>Baixa legendas de vídeos usando o atalho <code>NVDA+Shift+L</code>.</li>
+    <li>Funciona em diversas plataformas populares como YouTube, Vimeo, Coursera e outras suportadas pela biblioteca <code>yt-dlp</code>.</li>
+    <li>Salva as legendas automaticamente na sua pasta de <strong>Downloads</strong>.</li>
+    <li>Usa o título do vídeo como nome do arquivo de legenda (formato: <code>TituloDoVideo.idioma.txt</code>).</li>
+    <li>Se múltiplas legendas estiverem disponíveis, exibe uma lista para você escolher o idioma desejado.</li>
+    <li>Converte as legendas para o formato de texto simples (<code>.txt</code>) para fácil leitura.</li>
+    <li>Pronto para tradução (internacionalizado).</li>
+</ul>
+
+<h2>Instalação</h2>
+<ol>
+    <li>Baixe o arquivo do complemento (<code>SubtitleDownloader-X.Y.nvda-addon</code>).</li>
+    <li>Abra o NVDA.</li>
+    <li>Vá ao menu NVDA -> Ferramentas -> Gerenciar complementos.</li>
+    <li>Clique no botão "Instalar...".</li>
+    <li>Navegue até o arquivo <code>.nvda-addon</code> que você baixou e selecione-o.</li>
+    <li>Confirme a instalação e reinicie o NVDA quando solicitado.</li>
+</ol>
+
+<h2>Como Usar</h2>
+<ol>
+    <li>Navegue até a página web que contém o vídeo do qual você deseja baixar a legenda (ex: YouTube, Vimeo).</li>
+    <li>Certifique-se de que a janela do navegador ou o player de vídeo esteja em foco.</li>
+    <li>Pressione o atalho <code>NVDA+Shift+L</code>.</li>
+    <li>O complemento tentará detectar a URL do vídeo e buscar por legendas.</li>
+    <li><strong>Se apenas um idioma for encontrado:</strong> A legenda será baixada e salva automaticamente na pasta Downloads. Você ouvirá uma mensagem de confirmação.</li>
+    <li><strong>Se múltiplos idiomas forem encontrados:</strong> Uma caixa de diálogo aparecerá listando os idiomas disponíveis. Use as setas para cima/baixo para selecionar o idioma desejado e pressione Enter. A legenda selecionada será baixada e salva.</li>
+    <li><strong>Se nenhuma legenda for encontrada ou ocorrer um erro:</strong> Você ouvirá uma mensagem informando o problema.</li>
+</ol>
+
+<h2>Plataformas Suportadas</h2>
+<p>O complemento utiliza a biblioteca <code>yt-dlp</code> nos bastidores, que suporta centenas de sites. A funcionalidade é mais testada e garantida em plataformas como:</p>
+<ul>
+    <li>YouTube</li>
+    <li>Vimeo</li>
+    <li>Dailymotion</li>
+    <li>Coursera (pode exigir login)</li>
+    <li>E muitas outras...</li>
+</ul>
+<p>A capacidade de baixar legendas depende da disponibilidade no site e do suporte contínuo do <code>yt-dlp</code>.</p>
+
+<div class="note">
+    <h3>Nota Importante sobre Autenticação e Captchas</h3>
+    <p>Algumas plataformas (como YouTube e Vimeo em certas situações) podem exigir que você esteja logado ou que resolva verificações de segurança (captchas) para acessar o conteúdo, incluindo legendas. O complemento, por si só, não consegue fazer login ou resolver captchas.</p>
+    <p>Se o download falhar com mensagens de erro relacionadas a login ou verificação, pode ser necessário:</p>
+    <ul>
+        <li>Garantir que você está logado na plataforma no seu navegador.</li>
+        <li>Para usuários avançados: Configurar o <code>yt-dlp</code> para usar os cookies do seu navegador. Isso geralmente envolve exportar os cookies do navegador para um arquivo e configurar o <code>yt-dlp</code> (ou uma futura versão deste complemento) para usá-los. Consulte a documentação do <code>yt-dlp</code> sobre "cookies" para mais detalhes.</li>
+    </ul>
+    <p>Testes em ambientes automatizados (como o sandbox onde este complemento foi desenvolvido) podem não refletir completamente o uso real devido a essas restrições.</p>
+</div>
+
+<h2>Solução de Problemas</h2>
+<ul>
+    <li><strong>Nenhuma URL detectada:</strong> Certifique-se de que o foco do NVDA está na janela correta (navegador ou player). Tente focar a barra de endereços ou o próprio vídeo.</li>
+    <li><strong>Erro de download:</strong> Verifique sua conexão com a internet. O vídeo pode não ter legendas ou a plataforma pode estar bloqueando o acesso (veja a nota sobre autenticação).</li>
+    <li><strong>yt-dlp não encontrado:</strong> Esta dependência é crucial. Se o complemento foi empacotado corretamente, ela deve estar incluída. Se você instalou manualmente, certifique-se de que <code>yt-dlp</code> está acessível pelo Python do NVDA.</li>
+</ul>
+
+<h2>Autor</h2>
+<p>Desenvolvido por Manus AI (com base na solicitação do usuário).</p>
+
+</body>
+</html>
+

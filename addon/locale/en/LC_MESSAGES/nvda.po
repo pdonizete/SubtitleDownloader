@@ -1,0 +1,19 @@
+# English translations for SubtitleDownloader NVDA Add-on .
+# Copyright (C) 2025 Manus AI
+# This file is distributed under the same license as the SubtitleDownloader package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SubtitleDownloader 1.0\\n"
+"Report-Msgid-Bugs-To: support@example.com\\n"
+"POT-Creation-Date: 2025-05-27 12:16+0000\\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\\n"
+"Language-Team: English <LL@li.org>\\n"
+"Language: en\\n"
+"MIME-Version: 1.0\\n"
+"Content-Type: text/plain"
+"Content-Transfer-Encoding: 8bit\\n"
+
+# Placeholder for actual translations
+
