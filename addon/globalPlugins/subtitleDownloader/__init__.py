@@ -32,6 +32,7 @@ except ImportError:
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     """NVDA Global Plugin to download video subtitles."""
 
+    scriptCategory = _("Subtitle Downloader")
     # Class variable to prevent multiple simultaneous downloads
     _download_thread = None
 
@@ -44,34 +45,61 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         """Tries to get the URL of the video from the foreground application."""
         try:
             focusObject = api.getFocusObject()
-            window = focusObject.appModule.appName
+            appModule = focusObject.appModule
+            window_name = appModule.appName # Use a different variable name to avoid conflict
 
-            # Browser detection (basic)
-            if window in ["firefox", "chrome", "msedge"]:
-                # Accessing URL bar in browsers is complex and varies.
-                # NVDA's browser support might offer ways (e.g., focusObject.browser), 
-                # but it's not always reliable or straightforward.
-                # A more robust method might involve specific browser accessibility APIs or heuristics.
-                # For now, let's try a basic approach using object properties if available.
-                if hasattr(focusObject, 'value') and focusObject.role == api.controlTypes.ROLE_EDITABLETEXT:
-                    # Sometimes the URL bar is the focus
-                    url = focusObject.value
+            # Browser detection (more robust)
+            if window_name in ["firefox", "chrome", "msedge", "brave", "opera", "vivaldi"]: # Added more browsers
+                # 1. Try appModule.browser.url (most reliable for supported browsers)
+                if hasattr(appModule, 'browser') and hasattr(appModule.browser, 'url'):
+                    url = appModule.browser.url
                     if url and (url.startswith("http://") or url.startswith("https://")):
+                        print(f"SubtitleDownloader: URL from appModule.browser.url: {url}")
+                        return url
+
+                # 2. Try focusObject.document.URL
+                if hasattr(focusObject, 'document') and hasattr(focusObject.document, 'URL'):
+                    url = focusObject.document.URL
+                    if url and (url.startswith("http://") or url.startswith("https://")):
+                        print(f"SubtitleDownloader: URL from focusObject.document.URL: {url}")
+                        return url
+
+                # 3. Try focusObject.simpleParent.document.URL
+                if hasattr(focusObject, 'simpleParent') and \
+                   hasattr(focusObject.simpleParent, 'document') and \
+                   hasattr(focusObject.simpleParent.document, 'URL'):
+                    url = focusObject.simpleParent.document.URL
+                    if url and (url.startswith("http://") or url.startswith("https://")):
+                        print(f"SubtitleDownloader: URL from focusObject.simpleParent.document.URL: {url}")
                         return url
                 
-                # Fallback: Try to find the document object and get its URL
+                # 4. Fallback: Check if focusObject itself has 'value' (e.g., URL bar)
+                if hasattr(focusObject, 'value') and focusObject.role == api.controlTypes.ROLE_EDITABLETEXT:
+                    url = focusObject.value
+                    if url and (url.startswith("http://") or url.startswith("https://")):
+                        print(f"SubtitleDownloader: URL from focusObject.value: {url}")
+                        return url
+                
+                # 5. Fallback: Iterate upwards to find a document object with URL
                 doc_obj = focusObject.simpleParent
-                while doc_obj and doc_obj.role != api.controlTypes.ROLE_DOCUMENT:
+                # Limit upward search to prevent infinite loops in weird object hierarchies
+                for _ in range(5): # Check up to 5 levels up
+                    if not doc_obj:
+                        break
+                    if doc_obj.role == api.controlTypes.ROLE_DOCUMENT and hasattr(doc_obj, 'URL'):
+                        url = doc_obj.URL
+                        if url and (url.startswith("http://") or url.startswith("https://")):
+                            print(f"SubtitleDownloader: URL from upward search (doc_obj.URL): {url}")
+                            return url
                     doc_obj = doc_obj.simpleParent
-                if doc_obj and hasattr(doc_obj, 'URL'):
-                     return doc_obj.URL
-
+            
             # Add logic for other applications/platforms if needed
+            # For example, for media players, the URL might be in a different property
 
         except Exception as e:
-            print(f"Error getting URL: {e}")
-            # Use ui.message for user-facing errors, print for debugging
-            # ui.message(_("Could not determine video URL."))
+            # More specific error message for debugging
+            print(f"SubtitleDownloader: Error getting URL from {focusObject.appModule.appName if hasattr(focusObject, 'appModule') and focusObject.appModule else 'unknown app'}: {e}")
+            # ui.message(_("Could not determine video URL.")) # User message is handled by the caller script
         return None
 
     def _download_subtitle_thread(self, url):
@@ -279,6 +307,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @scriptHandler.script(
         # Translators: Input gesture description
         description=_("Downloads subtitles for the current video"),
+        category=_("Subtitle Downloader"),
         gesture="kb:NVDA+Shift+L"
     )
     def script_downloadSubtitles(self, gesture):
