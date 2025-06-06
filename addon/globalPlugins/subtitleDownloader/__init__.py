@@ -15,18 +15,25 @@ import re
 import json
 from pathlib import Path
 
+# Ensure bundled libraries can be imported when the add-on is packaged.
+_addon_dir = os.path.dirname(__file__)
+_lib_dir = os.path.join(_addon_dir, "lib")
+if _lib_dir not in sys.path and os.path.isdir(_lib_dir):
+    sys.path.insert(0, _lib_dir)
+
 # Setup localization
 addonHandler.initTranslation()
 _ = gettext.gettext
 
-# Try to import yt-dlp, handling potential import errors
+# Try to import yt-dlp, handling potential import errors. The library may be
+# bundled inside the "lib" directory of this add-on.
 try:
     import yt_dlp
 except ImportError:
     # If yt-dlp is not found directly, try finding it within the add-on structure
     # This assumes yt-dlp might be bundled within the add-on later
     # For now, we rely on the pip installation in the sandbox
-    ui.message(_("yt-dlp library not found. Please ensure it is installed."))
+    ui.message(_("yt-dlp library not found. Please ensure it is installed or bundled with the add-on."))
     yt_dlp = None # Indicate that yt-dlp is not available
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
@@ -100,6 +107,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             # More specific error message for debugging
             print(f"SubtitleDownloader: Error getting URL from {focusObject.appModule.appName if hasattr(focusObject, 'appModule') and focusObject.appModule else 'unknown app'}: {e}")
             # ui.message(_("Could not determine video URL.")) # User message is handled by the caller script
+        # Final fallback: check clipboard for a URL
+        clipboard_url = self._get_url_from_clipboard()
+        if clipboard_url:
+            print(f"SubtitleDownloader: URL from clipboard: {clipboard_url}")
+            return clipboard_url
+        return None
+
+    def _get_url_from_clipboard(self):
+        """Returns a URL from the clipboard if one exists."""
+        try:
+            if wx.TheClipboard.Open():
+                try:
+                    data = wx.TextDataObject()
+                    if wx.TheClipboard.GetData(data):
+                        text = data.GetText()
+                        if text and (text.startswith("http://") or text.startswith("https://")):
+                            return text
+                finally:
+                    wx.TheClipboard.Close()
+        except Exception:
+            pass
         return None
 
     def _download_subtitle_thread(self, url):
